@@ -6,8 +6,9 @@ export async function POST(req: Request) {
         const formData = await req.formData();
         const file = formData.get("file") as File;
         const caption = formData.get("caption") as string;
+        const imageUrl = formData.get("imageUrl") as string;
 
-        if (!file && !caption) {
+        if (!file && !imageUrl && !caption) {
             return NextResponse.json({ error: "Please provide an image or caption" }, { status: 400 });
         }
 
@@ -56,6 +57,25 @@ export async function POST(req: Request) {
                     mimeType: file.type,
                 },
             });
+        } else if (imageUrl) {
+            try {
+                const imageResp = await fetch(imageUrl);
+                if (!imageResp.ok) throw new Error("Failed to fetch image from URL");
+                const arrayBuffer = await imageResp.arrayBuffer();
+                const buffer = Buffer.from(arrayBuffer);
+                const base64Image = buffer.toString("base64");
+                const mimeType = imageResp.headers.get("content-type") || "image/jpeg";
+
+                parts.push({
+                    inlineData: {
+                        data: base64Image,
+                        mimeType: mimeType,
+                    },
+                });
+            } catch (err) {
+                console.error("Error fetching image from URL:", err);
+                return NextResponse.json({ error: "Failed to download image from URL" }, { status: 400 });
+            }
         }
 
         const result = await model.generateContent(parts);

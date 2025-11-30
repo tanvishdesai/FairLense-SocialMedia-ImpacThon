@@ -11,26 +11,62 @@ interface AuditResult {
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
+  const [url, setUrl] = useState("");
+  const [extractedImageUrl, setExtractedImageUrl] = useState("");
   const [caption, setCaption] = useState("");
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
   const [result, setResult] = useState<AuditResult | null>(null);
   const [error, setError] = useState("");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       setFile(e.target.files[0]);
+      setExtractedImageUrl(""); // Clear extracted image if file is selected
+    }
+  };
+
+  const handleFetchUrl = async () => {
+    if (!url) return;
+    setFetching(true);
+    setError("");
+    setResult(null);
+    setFile(null); // Clear file if URL is fetched
+
+    try {
+      const res = await fetch("/api/extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        setExtractedImageUrl(data.imageUrl);
+        setCaption(data.caption);
+      } else {
+        setError(data.error || "Failed to fetch content");
+      }
+    } catch (err) {
+      setError("Failed to connect to server");
+    } finally {
+      setFetching(false);
     }
   };
 
   const handleAudit = async () => {
-    if (!file && !caption) return;
+    if (!file && !caption && !extractedImageUrl) return;
 
     setLoading(true);
     setError("");
     setResult(null);
 
     const formData = new FormData();
-    if (file) formData.append("file", file);
+    if (file) {
+        formData.append("file", file);
+    } else if (extractedImageUrl) {
+        formData.append("imageUrl", extractedImageUrl);
+    }
     formData.append("caption", caption);
 
     try {
@@ -65,21 +101,56 @@ export default function Home() {
 
         <div className="space-y-6">
           {/* Image Upload */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Upload Image (Meme/Post)
-            </label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="block w-full text-sm text-gray-400
-                file:mr-4 file:py-2 file:px-4
-                file:rounded-full file:border-0
-                file:text-sm file:font-semibold
-                file:bg-purple-900 file:text-purple-300
-                hover:file:bg-purple-800 cursor-pointer"
-            />
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Upload Image (Meme/Post)
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="block w-full text-sm text-gray-400
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-full file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-purple-900 file:text-purple-300
+                  hover:file:bg-purple-800 cursor-pointer"
+              />
+            </div>
+
+            <div className="text-center text-gray-500 text-sm">- OR -</div>
+
+            {/* URL Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Paste Social Media Post URL
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://twitter.com/..."
+                  className="flex-1 bg-gray-700 border border-gray-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                />
+                <button
+                  onClick={handleFetchUrl}
+                  disabled={fetching || !url}
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {fetching ? "..." : "Fetch"}
+                </button>
+              </div>
+            </div>
+
+            {/* Extracted Image Preview */}
+            {extractedImageUrl && (
+              <div className="mt-4">
+                 <p className="text-sm text-gray-400 mb-2">Extracted Image:</p>
+                 <img src={extractedImageUrl} alt="Extracted" className="w-full max-h-64 object-contain rounded-lg border border-gray-600" />
+              </div>
+            )}
           </div>
 
           {/* Caption Input */}
@@ -98,9 +169,9 @@ export default function Home() {
 
           <button
             onClick={handleAudit}
-            disabled={(!file && !caption) || loading}
+            disabled={(!file && !caption && !extractedImageUrl) || loading}
             className={`w-full py-3 px-4 rounded-lg font-bold transition-all ${
-              (!file && !caption) || loading
+              (!file && !caption && !extractedImageUrl) || loading
                 ? "bg-gray-600 cursor-not-allowed"
                 : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-lg"
             }`}
