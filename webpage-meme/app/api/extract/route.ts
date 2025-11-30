@@ -9,7 +9,19 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "URL is required" }, { status: 400 });
         }
 
-        const response = await fetch(url, {
+        let targetUrl = url;
+        const urlObj = new URL(url);
+        if (
+            urlObj.hostname === "twitter.com" ||
+            urlObj.hostname === "www.twitter.com" ||
+            urlObj.hostname === "x.com" ||
+            urlObj.hostname === "www.x.com"
+        ) {
+            urlObj.hostname = "fxtwitter.com";
+            targetUrl = urlObj.toString();
+        }
+
+        const response = await fetch(targetUrl, {
             headers: {
                 "User-Agent":
                     "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
