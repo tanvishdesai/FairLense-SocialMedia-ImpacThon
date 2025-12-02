@@ -7,6 +7,8 @@ export async function POST(req: Request) {
         const file = formData.get("file") as File;
         const caption = formData.get("caption") as string;
         const imageUrl = formData.get("imageUrl") as string;
+        const language = formData.get("language") as string || "English/Hindi";
+        const sensitivity = formData.get("sensitivity") as string || "Standard";
 
         if (!file && !imageUrl && !caption) {
             return NextResponse.json({ error: "Please provide an image or caption" }, { status: 400 });
@@ -24,22 +26,28 @@ export async function POST(req: Request) {
 
         // Add text prompt
         const prompt = `
-      Analyze the following social media post (Image + Caption) for social bias (gender, caste, religion, race, etc.).
-      
+      Role: You are an expert Content Moderator for the Indian Social Media context.
+
+      Task: Analyze the provided social media post (Image + Caption).
       Caption: "${caption || "[No Caption]"}"
-      
-      Task:
-      1. Determine if the content is "Biased" or "Neutral".
-      2. If biased, explain WHY it is biased (e.g., stereotypes, slurs).
-      3. Assign a "Bias Score" from 0 (Safe) to 100 (Highly Offensive).
-      4. Suggest a neutral, inclusive alternative for the caption.
-      
-      Return the result in this JSON format:
+      Context Language: ${language}
+      Sensitivity Level: ${sensitivity}
+
+      Check for:
+      1. Hate Speech (Religious, Caste-based, Gender-based, Regional).
+      2. Harassment or Bullying.
+      3. Misinformation or Deepfakes.
+      4. Cultural nuances specific to India (e.g., Casteism, Regional stereotypes).
+
+      Output Requirements (JSON ONLY):
       {
         "is_biased": boolean,
-        "bias_score": number,
-        "explanation": "string",
-        "suggestion": "string"
+        "bias_score": number (0-100),
+        "category": "string" (e.g., "Casteism", "Sexism", "Safe", "Religious Hate", "Political"),
+        "trigger_words": ["word1", "word2"], // Words or phrases in the text that caused the flag
+        "explanation": "Brief explanation referencing cultural context if needed.",
+        "suggestion": "A neutral rephrasing.",
+        "policy_violation": "Yes/No based on Indian IT Rules"
       }
       Return ONLY valid JSON.
     `;

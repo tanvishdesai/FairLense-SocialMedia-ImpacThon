@@ -7,6 +7,9 @@ interface AuditResult {
   bias_score: number;
   explanation: string;
   suggestion: string;
+  category?: string;
+  trigger_words?: string[];
+  policy_violation?: string;
 }
 
 export default function Home() {
@@ -18,6 +21,10 @@ export default function Home() {
   const [fetching, setFetching] = useState(false);
   const [result, setResult] = useState<AuditResult | null>(null);
   const [error, setError] = useState("");
+
+  // New States for Settings
+  const [language, setLanguage] = useState("English");
+  const [mode, setMode] = useState("Standard");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -68,6 +75,8 @@ export default function Home() {
         formData.append("imageUrl", extractedImageUrl);
     }
     formData.append("caption", caption);
+    formData.append("language", language);
+    formData.append("sensitivity", mode);
 
     try {
       const res = await fetch("/api/audit", {
@@ -100,6 +109,35 @@ export default function Home() {
         </p>
 
         <div className="space-y-6">
+           {/* Settings: Language & Sensitivity */}
+           <div className="flex flex-col sm:flex-row gap-4 mb-4 bg-gray-700/50 p-4 rounded-lg border border-gray-600">
+             <div className="flex-1">
+               <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Context Language</label>
+               <select
+                 value={language}
+                 onChange={(e) => setLanguage(e.target.value)}
+                 className="w-full bg-gray-800 text-white p-2 rounded border border-gray-600 focus:border-purple-500 outline-none text-sm"
+               >
+                 <option value="English">Global (English)</option>
+                 <option value="Hindi + English">Indian Context (Hinglish)</option>
+                 <option value="Gujarati">Gujarati (Regional)</option>
+               </select>
+             </div>
+
+             <div className="flex-1">
+               <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Sensitivity Mode</label>
+               <select
+                 value={mode}
+                 onChange={(e) => setMode(e.target.value)}
+                 className="w-full bg-gray-800 text-white p-2 rounded border border-gray-600 focus:border-purple-500 outline-none text-sm"
+               >
+                 <option value="Standard">Standard Moderation</option>
+                 <option value="Strict">Strict (Family Friendly)</option>
+                 <option value="Loose">Loose (Free Speech)</option>
+               </select>
+             </div>
+           </div>
+
           {/* Image Upload */}
           <div className="space-y-4">
             <div>
@@ -213,6 +251,53 @@ export default function Home() {
                   </div>
                 </div>
               )}
+
+              {/* Advanced Evidence / Details */}
+              <div className="mt-4 pt-4 border-t border-gray-700">
+                  <details className="group">
+                      <summary className="flex justify-between items-center font-medium cursor-pointer list-none text-purple-400 hover:text-purple-300 transition-colors">
+                          <span>🔍 View Detailed Analysis</span>
+                          <span className="transition group-open:rotate-180">
+                              <svg fill="none" height="24" shapeRendering="geometricPrecision" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                          </span>
+                      </summary>
+                      <div className="text-gray-300 mt-3 bg-gray-900/50 p-4 rounded-lg space-y-3 text-sm">
+
+                          {/* Trigger Words */}
+                          {result.trigger_words && result.trigger_words.length > 0 && (
+                            <div>
+                                <strong className="block text-red-400 mb-1">Trigger Words Detected:</strong>
+                                <div className="flex flex-wrap gap-2">
+                                    {result.trigger_words.map((word, i) => (
+                                        <span key={i} className="bg-red-900/40 text-red-200 px-2 py-1 rounded border border-red-800 text-xs">
+                                            {word}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                          )}
+
+                          {/* Category */}
+                          {result.category && (
+                              <p><strong className="text-gray-400">Category:</strong> {result.category}</p>
+                          )}
+
+                          {/* Policy Check */}
+                          <div>
+                              <strong className="block text-gray-400 mb-1">Compliance Check:</strong>
+                              <ul className="space-y-1 pl-1">
+                                  <li className="flex items-center gap-2">
+                                      {result.is_biased ? '❌' : '✅'} Twitter Safety Policy
+                                  </li>
+                                  <li className="flex items-center gap-2">
+                                      {result.policy_violation === "Yes" ? '❌' : '✅'} Indian IT Act (Section 66A)
+                                  </li>
+                              </ul>
+                          </div>
+
+                      </div>
+                  </details>
+              </div>
             </div>
           </div>
         )}
