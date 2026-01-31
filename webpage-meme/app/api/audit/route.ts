@@ -42,7 +42,8 @@ export async function POST(req: Request) {
       Output Requirements (JSON ONLY):
       {
         "is_biased": boolean,
-        "bias_score": number (0-100),
+        "bias_score": number (0-100), // Score < 80 is safe. Score >= 80 requires changes.
+        "flagged_part": "string", // "Caption", "Image", "Both", or null if score < 80
         "category": "string" (e.g., "Casteism", "Sexism", "Safe", "Religious Hate", "Political"),
         "trigger_words": ["word1", "word2"], // Words or phrases in the text that caused the flag
         "explanation": "Brief explanation referencing cultural context if needed.",

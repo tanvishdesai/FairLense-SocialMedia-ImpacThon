@@ -10,6 +10,7 @@ interface AuditResult {
   category?: string;
   trigger_words?: string[];
   policy_violation?: string;
+  flagged_part?: string;
 }
 
 export default function Home() {
@@ -231,7 +232,7 @@ export default function Home() {
                 {result.is_biased ? "⚠️ Bias Detected" : "✅ Content looks Safe"}
               </h2>
               <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-                result.bias_score > 50 ? "bg-red-500 text-white" : "bg-green-500 text-white"
+                result.bias_score >= 80 ? "bg-red-500 text-white" : "bg-green-500 text-white"
               }`}>
                 Score: {result.bias_score}/100
               </span>
@@ -242,6 +243,13 @@ export default function Home() {
                 <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Explanation</h3>
                 <p className="text-gray-200 mt-1">{result.explanation}</p>
               </div>
+
+              {result.is_biased && result.flagged_part && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Flagged Part</h3>
+                  <p className="text-red-400 mt-1 font-bold">{result.flagged_part}</p>
+                </div>
+              )}
 
               {result.is_biased && (
                 <div>
